@@ -36,7 +36,7 @@ with sync_playwright() as p:
     pg.click("[data-testid=confirm]"); pg.wait_for_timeout(500)
     # second capture via API in forced stub mode, then reject it in the UI
     sheet_id = next(s["id"] for s in st["sheets"] if s["number"] == "E-101")
-    with open(os.path.join(ROOT, "sample", "sample-field-photo-LP1.jpg"), "rb") as f: photo = f.read()
+    with open(os.path.join(ROOT, "app", "sample", "sample-field-photo-LP1.jpg"), "rb") as f: photo = f.read()
     r = pg.request.post(f"{BASE}/api/captures", multipart={"photo": {"name": "p.jpg", "mimeType": "image/jpeg", "buffer": photo}, "note": "J-3 for EWC moved 4 ft west in corridor 107", "sheetId": sheet_id, "mode": "stub"}).json()
     stub = r["markup"]
     results.append(ok(stub["method"].startswith("stub") and "J-3" in stub["anchorText"], f"stub placement anchored on '{stub['anchorText']}' ({stub['reasoning']})"))

@@ -3,6 +3,17 @@ import SheetViewer from './SheetViewer.jsx';
 
 const api = async (url, opts) => { const r = await fetch(url, opts); if (!r.ok) throw new Error((await r.json().catch(() => ({}))).error || r.statusText); return r.json(); };
 const pct = (x) => `${Math.round(x * 100)}%`;
+async function shrinkPhoto(file, max = 1600) {
+  try {
+    const bmp = await createImageBitmap(file);
+    const k = Math.min(1, max / Math.max(bmp.width, bmp.height));
+    if (k === 1 && file.size < 1.5e6) return file;
+    const c = document.createElement('canvas'); c.width = Math.round(bmp.width * k); c.height = Math.round(bmp.height * k);
+    c.getContext('2d').drawImage(bmp, 0, 0, c.width, c.height);
+    const blob = await new Promise((res) => c.toBlob(res, 'image/jpeg', 0.85));
+    return new File([blob], (file.name || 'photo').replace(/\.[^.]+$/, '') + '.jpg', { type: 'image/jpeg' });
+  } catch { return file; }
+}
 
 export default function App() {
   const [cfg, setCfg] = useState(null);
@@ -30,7 +41,7 @@ export default function App() {
 
   const run = async (label, fn) => { setBusy(label); setErr(''); try { await fn(); } catch (e) { setErr(e.message); } finally { setBusy(''); } };
 
-  const uploadPdf = (f) => run('Reading drawing set…', async () => { const fd = new FormData(); fd.append('pdf', f); await api('/api/drawings', { method: 'POST', body: fd }); await load(); });
+  const uploadPdf = (f) => run('Reading drawing set…', async () => { if (f.size > 4.4e6) throw new Error('This prototype accepts drawing PDFs up to 4.4 MB (serverless upload limit). Large sets will upload straight to storage in the MVP.'); const fd = new FormData(); fd.append('pdf', f); await api('/api/drawings', { method: 'POST', body: fd }); await load(); });
   const loadSample = () => run('Loading sample set…', async () => { await api('/api/sample/drawing', { method: 'POST' }); setSheetId(null); await load(); });
   const useSamplePhoto = async () => { const b = await (await fetch('/api/sample/photo')).blob(); setPhoto(new File([b], 'sample-field-photo-LP1.jpg', { type: 'image/jpeg' })); if (!note) { setNote('Panel LP-1 relocated 3 ft north to clear duct, conduits re-stubbed above'); setNoteSource('text'); } };
 
@@ -45,7 +56,7 @@ export default function App() {
   };
 
   const suggest = () => run(cfg?.placement === 'llm' ? `Asking ${cfg.model} for a placement…` : 'Suggesting placement (stub)…', async () => {
-    const fd = new FormData(); fd.append('photo', photo); fd.append('note', note); fd.append('sheetId', sheetId); fd.append('noteSource', noteSource); fd.append('by', 'Foreman');
+    const fd = new FormData(); fd.append('photo', await shrinkPhoto(photo)); fd.append('note', note); fd.append('sheetId', sheetId); fd.append('noteSource', noteSource); fd.append('by', 'Foreman');
     const { markup } = await api('/api/captures', { method: 'POST', body: fd });
     await load(); setSelectedId(markup.id); setPhoto(null); setNote('');
   });

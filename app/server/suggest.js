@@ -1,5 +1,4 @@
 // Placement suggestion: vision LLM (xAI API) when XAI_API_KEY is set, else a deterministic text-match stub.
-import fs from 'node:fs';
 
 const STOP = new Set(['THE', 'AND', 'WAS', 'WERE', 'FROM', 'WITH', 'MOVED', 'MOVE', 'RELOCATED', 'TO', 'OF', 'IN', 'ON', 'AT', 'FOR', 'NEW', 'PER', 'FIELD', 'INSTEAD', 'NOT', 'ADDED', 'ADD', 'REMOVED', 'FEET', 'FOOT', 'FT', 'NORTH', 'SOUTH', 'EAST', 'WEST', 'UP', 'DOWN', 'LEFT', 'RIGHT', 'ROOM', 'THIS', 'THAT', 'ABOUT', 'APPROX']);
 const DIRS = { NORTH: [0, 1], UP: [0, 1], SOUTH: [0, -1], DOWN: [0, -1], EAST: [1, 0], RIGHT: [1, 0], WEST: [-1, 0], LEFT: [-1, 0] };
@@ -69,7 +68,7 @@ export function stubSuggest({ sheet, note, initials }) {
   };
 }
 
-export async function llmSuggest({ sheet, note, photoPath, photoMime, initials }) {
+export async function llmSuggest({ sheet, note, photoBytes, photoMime, initials }) {
   const key = process.env.XAI_API_KEY;
   const model = process.env.FAB_VISION_MODEL || 'grok-4.20-0309-non-reasoning';
   const items = sheet.items.slice(0, 400).map((it) => `${it.id}|${it.text}|${it.x},${it.y},${it.w},${it.h}`).join('\n');
@@ -78,7 +77,7 @@ Coordinates are PDF points, origin bottom-left, y increases upward (plan north i
 Given a field photo, the foreman's note and the sheet's text items (id|text|x,y,w,h — x,y is the text baseline-left), pick the text item the change relates to (equipment tag, room number, device label) and any offset in feet the note implies.
 Also rewrite the note as a concise as-built redline note in standard electrical trade wording, ALL CAPS, max 120 chars, no initials/date.
 Reply ONLY with JSON: {"anchor_item_id": int|null, "offset_ft": {"x": number, "y": number}, "note": string, "confidence": number 0-1, "reasoning": string (one sentence)}`;
-  const img = fs.readFileSync(photoPath).toString('base64');
+  const img = Buffer.from(photoBytes).toString('base64');
   const body = {
     model,
     temperature: 0,

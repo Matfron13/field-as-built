@@ -1,5 +1,8 @@
 // Extract per-page text items (PDF user-space coords) + sheet number/title/scale using pdf.js in Node.
 import * as pdfjs from 'pdfjs-dist/legacy/build/pdf.mjs';
+import * as pdfWorker from 'pdfjs-dist/legacy/build/pdf.worker.mjs';
+// Run the pdf.js worker in-process (no worker file lookup) so it works inside serverless bundles.
+globalThis.pdfjsWorker = pdfWorker;
 
 export async function extractSheets(pdfBytes) {
   const doc = await pdfjs.getDocument({ data: new Uint8Array(pdfBytes), useSystemFonts: true, isEvalSupported: false }).promise;

@@ -1,0 +1,9 @@
+{
+  "framework": "vite",
+  "buildCommand": "vite build",
+  "outputDirectory": "dist",
+  "functions": {
+    "api/index.js": { "includeFiles": "{sample/**,node_modules/pdfjs-dist/legacy/build/**}", "maxDuration": 60 }
+  },
+  "rewrites": [{ "source": "/api/(.*)", "destination": "/api/index" }]
+}

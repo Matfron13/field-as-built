@@ -7,7 +7,7 @@ from reportlab.lib import colors
 from PIL import Image, ImageDraw, ImageFont, ImageFilter
 import random
 
-OUT = os.path.join(os.path.dirname(__file__), "..", "sample")
+OUT = os.path.join(os.path.dirname(__file__), "..", "app", "sample")
 os.makedirs(OUT, exist_ok=True)
 W, H = 1224, 792  # 17x11 (ANSI B) landscape, points
 
