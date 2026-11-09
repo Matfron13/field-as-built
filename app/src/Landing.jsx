@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import Brand, { BrandMark } from './Brand.jsx';
 
 const ROLES = ['General contractor', 'Electrical subcontractor', 'Mechanical / plumbing subcontractor', 'Civil / sitework subcontractor', 'Owner / facilities', 'Other'];
 
@@ -35,10 +36,12 @@ export default function Landing() {
   return (
     <div className="lp">
       <nav className="lp-nav">
-        <div className="brand">Field Redline</div>
-        <a href="/demo" className="lp-link">Demo</a>
-        <a href="#pilot" className="lp-link">Request a pilot</a>
-        <a href="/app" className="lp-link signin" data-testid="sign-in-link">Sign in</a>
+        <Brand mark={36} />
+        <div className="lp-links">
+          <a href="/demo" className="lp-link">Demo</a>
+          <a href="#pilot" className="lp-link">Request a pilot</a>
+          <a href="/app" className="lp-link signin" data-testid="sign-in-link">Sign in</a>
+        </div>
       </nav>
       <header className="lp-hero">
         <h1>Snap a photo in the field.<br />Get the redline on the drawing.</h1>
@@ -76,7 +79,7 @@ export default function Landing() {
         <p className="muted">Pilots run on one active project. We load your current drawing set and your field team starts capturing the same week.</p>
         <PilotForm />
       </section>
-      <footer className="lp-foot muted small">© 2026 Field Redline · <a href="/demo">Demo</a> · <a href="/app">Sign in</a></footer>
+      <footer className="lp-foot muted small">© 2026 <BrandMark className="foot-mark" height={20} /> Field Redline · <a href="/demo">Demo</a> · <a href="/app">Sign in</a></footer>
     </div>
   );
 }
