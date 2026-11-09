@@ -1,6 +1,7 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import SheetViewer from './SheetViewer.jsx';
 import SheetPicker from './SheetPicker.jsx';
+import Brand from './Brand.jsx';
 import { stubSuggest } from '../shared/placement.js';
 
 // Public, read-only demo on the SAMPLE set. Everything is static files under /demo/;
@@ -40,7 +41,7 @@ export default function Demo() {
   return (
     <div className="app demo">
       <header>
-        <a className="brand" href="/">Field Redline</a>
+        <Brand href="/" />
         <span className="rolechip">LIVE DEMO · sample data</span>
         <span className="small">{d.project.name}</span>
         <a className="hdrbtn right btn" href="/#pilot" data-testid="demo-pilot">Request a pilot</a>
