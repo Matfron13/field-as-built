@@ -43,7 +43,8 @@ export function createApp() {
   const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 60 * 1024 * 1024 } });
   const app = express();
   app.disable('x-powered-by'); app.set('trust proxy', true);
-  app.use((_q, r, n) => { r.set('X-Robots-Tag', 'noindex, nofollow, noarchive'); n(); });
+  // Public marketing pages (/ and /demo) may be indexed; the signed-in app and the API never are.
+  app.use((q, r, n) => { if (/^\/(api|app)(\/|$)/.test(q.path)) r.set('X-Robots-Tag', 'noindex, nofollow, noarchive'); n(); });
   const wrap = (fn) => (q, r, n) => Promise.resolve(fn(q, r, n)).catch((e) => { console.error(e); r.status(e.status || 500).json({ error: e.message }); });
   const deny = (msg = 'not allowed for your role') => Object.assign(new Error(msg), { status: 403 });
 
@@ -58,6 +59,23 @@ export function createApp() {
 
   // Public: only what the login screen needs (the publishable key is designed to be public; RLS protects data).
   app.get('/api/public-config', (_q, r) => r.json({ supabaseUrl: env.SUPABASE_URL, supabaseKey: env.SUPABASE_PUBLISHABLE_KEY, signup: false }));
+
+  // Public: "Request a pilot" form. Inserted as the anonymous role (RLS: insert only, nobody can read via the API).
+  // Rate limits: per client IP here (best effort per instance) + per email / site-wide in a DB trigger.
+  const leadHits = new Map();
+  app.post('/api/leads', wrap(async (q, r) => {
+    const ip = (q.get('x-forwarded-for') || q.ip || '').split(',')[0].trim();
+    const now = Date.now(); const hits = (leadHits.get(ip) || []).filter((t) => now - t < 3600e3);
+    if (hits.length >= 20) return r.status(429).json({ error: 'Too many requests. Please try again later or email us.' });
+    const b = q.body || {}; const str = (v, n) => (typeof v === 'string' ? v.trim().slice(0, n) : '');
+    if (str(b.website, 200)) return r.json({ ok: true }); // honeypot: silently drop bots
+    const lead = { name: str(b.name, 120), email: str(b.email, 200), company: str(b.company, 160) || null, role: str(b.role, 60) || null, message: str(b.message, 2000) || null, source: str(b.source, 40) || 'landing' };
+    if (!lead.name || !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(lead.email)) return r.status(400).json({ error: 'Please enter your name and a valid email.' });
+    const { error } = await anon.from('leads').insert(lead);
+    if (error) return /rate limited/.test(error.message) ? r.status(429).json({ error: 'Too many requests for this email. Please try again later.' }) : r.status(400).json({ error: 'Could not save your request. Please check the fields.' });
+    hits.push(now); leadHits.set(ip, hits); if (leadHits.size > 5000) leadHits.clear(); // count accepted leads per IP
+    r.status(201).json({ ok: true });
+  }));
 
   // ---- auth gate: every other /api route needs a valid Supabase session (Authorization: Bearer <access token>)
   const seen = new Map(); // token -> {user, exp}

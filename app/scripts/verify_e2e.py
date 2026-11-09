@@ -3,7 +3,7 @@
  capture (AI or stub per server config), offline capture queued in IndexedDB then synced -> role checks ->
  PE: drag + confirm / reject -> export full-set PDF, per-sheet PDF, markup CSV -> verify annotations + log page.
 usage: python3 verify_e2e.py [base_url]   (makes at most ONE model call per run; the offline capture is forced to stub)"""
-import sys, os, json, subprocess, csv, io, urllib.request, urllib.error
+import sys, os, json, subprocess, csv, io, time
 from playwright.sync_api import sync_playwright
 from pypdf import PdfReader
 from check_annotations import inspect
@@ -20,7 +20,7 @@ def ok(c, m): print(("PASS " if c else "FAIL ") + m, flush=True); results.append
 def shot(pg, n): pg.screenshot(path=os.path.join(SHOTS, n))
 
 def login(ctx, email):
-    pg = ctx.new_page(); pg.goto(BASE); pg.wait_for_selector("[data-testid=login-form]")
+    pg = ctx.new_page(); pg.goto(BASE + "/app"); pg.wait_for_selector("[data-testid=login-form]")
     pg.fill("[data-testid=login-email]", email); pg.fill("[data-testid=login-password]", ACC[email]["password"]); pg.click("[data-testid=login-submit]")
     pg.wait_for_selector("[data-testid=sign-out]", timeout=20000); return pg
 def token(pg): return json.loads(pg.evaluate("localStorage.getItem('fab-auth')"))["access_token"]
@@ -28,17 +28,65 @@ def H(pg): return {"Authorization": f"Bearer {token(pg)}"}
 
 with sync_playwright() as p:
     b = p.chromium.launch(executable_path="/usr/bin/google-chrome", args=["--no-sandbox"])
-    # ---- 1. not public
-    anon = b.new_context(); pg = anon.new_page()
-    resp = pg.goto(BASE); pg.wait_for_selector("[data-testid=login-form]")
-    ok(pg.locator("meta[name=robots]").get_attribute("content").startswith("noindex"), "page has <meta name=robots noindex>")
-    ok("noindex" in (resp.headers.get("x-robots-tag") or ""), f"X-Robots-Tag header: {resp.headers.get('x-robots-tag')}")
+    # ---- 0. public website (no account)
+    anon = b.new_context(viewport={"width": 1400, "height": 900}, accept_downloads=True); pg = anon.new_page()
+    reqs = []; pg.on("request", lambda r: reqs.append(r.url))
+    resp = pg.goto(BASE + "/"); pg.wait_for_selector("[data-testid=lead-form]")
+    ok(resp.status == 200 and pg.locator("h1").count() == 1, "anonymous visitor loads the landing page at /")
+    ok("noindex" not in (resp.headers.get("x-robots-tag") or "") and pg.locator("meta[name=robots]").count() == 0, "landing page is indexable (no noindex)")
+    ok(pg.locator("[data-testid=try-demo]").get_attribute("href") == "/demo" and pg.locator("[data-testid=sign-in-link]").get_attribute("href") == "/app", "landing has 'Try the demo' (/demo) and 'Sign in' (/app)")
+    pg.wait_for_timeout(800); pg.screenshot(path=os.path.join(SHOTS, "20-landing.png"), full_page=True)
+    robots = pg.request.get(f"{BASE}/robots.txt").text()
+    ok("Disallow: /app" in robots and "Disallow: /api/" in robots and "Disallow: /\n" not in robots + "\n", "robots.txt allows / and /demo, disallows /app and /api")
+    lead_email = f"e2e-lead-{int(time.time())}@field-as-built.app"
+    pg.fill("[data-testid=lead-name]", "E2E Test Lead"); pg.fill("[data-testid=lead-email]", lead_email); pg.fill("[data-testid=lead-company]", "E2E (automated test)")
+    pg.fill("[data-testid=lead-message]", "Automated e2e check, please ignore"); pg.click("[data-testid=lead-submit]"); pg.wait_for_selector("[data-testid=lead-sent]", timeout=15000)
+    ok(True, "anonymous visitor submitted a pilot request")
+    rl = [pg.request.post(f"{BASE}/api/leads", data={"name": "E2E Test Lead", "email": lead_email, "source": "e2e"}).status for _ in range(3)]
+    ok(rl[:2] == [201, 201] and rl[2] == 429, f"lead form rate-limited (same email: {rl})")
+    pub = pg.request.get(f"{BASE}/api/public-config").json(); SB, KEY = pub["supabaseUrl"], pub["supabaseKey"]; AH = {"apikey": KEY, "Authorization": f"Bearer {KEY}"}
+    lr = pg.request.get(f"{SB}/rest/v1/leads?select=*", headers=AH)
+    ok(lr.status in (401, 403) or lr.json() == [], f"anonymous cannot read leads via Supabase REST (HTTP {lr.status})")
+    leaks = {t: pg.request.get(f"{SB}/rest/v1/{t}?select=*&limit=5", headers=AH) for t in ["projects", "drawing_sets", "sheets", "captures", "capture_photos", "markups", "markup_events", "ai_usage", "profiles", "memberships", "organizations", "exports"]}
+    ok(all(r.status in (401, 403) or r.json() == [] for r in leaks.values()), "anonymous REST reads of all project tables return nothing: " + ", ".join(f"{t}={r.status}/{len(r.json()) if r.ok else '-'}" for t, r in leaks.items()))
+    # demo
+    reqs.clear(); resp = pg.goto(BASE + "/demo"); pg.wait_for_selector("[data-testid=sheet-canvas]"); pg.wait_for_timeout(2500)
+    ok(resp.status == 200 and "noindex" not in (resp.headers.get("x-robots-tag") or ""), "anonymous visitor loads /demo (indexable)")
+    clouds_e101 = pg.locator("svg.overlay g.mk").count()
+    pg.click("[data-testid=sheet-picker]"); pg.click("[data-testid=sheet-E-201]"); pg.wait_for_timeout(1500)
+    clouds_e201 = pg.locator("svg.overlay g.mk").count()
+    ok(clouds_e101 == 2 and clouds_e201 == 2, f"demo: browse E-101 ({clouds_e101} redlines) and E-201 ({clouds_e201} redlines)")
+    pg.screenshot(path=os.path.join(SHOTS, "21-demo-E-201.png"))
+    pg.click("[data-testid=tab-log]"); pg.wait_for_selector("[data-testid=markup-log]")
+    ok(pg.locator("[data-testid=markup-log] tbody tr").count() == 4 and pg.locator("[data-testid=markup-log] caption").count() == 3, "demo markup log: 4 markups grouped into 3 capture dates")
+    pg.screenshot(path=os.path.join(SHOTS, "22-demo-markup-log.png"))
+    with pg.expect_download() as dl: pg.click("[data-testid=demo-export-pdf]")
+    dpdf = os.path.join(OUT, "demo-sample-export.pdf"); dl.value.save_as(dpdf)
+    da = inspect(dpdf); ok(len([a for a in da if a["subtype"] == "/Polygon"]) == 3 and len(PdfReader(dpdf).pages) == 3, "demo sample PDF export downloads (3 clouds, 2 sheets + log page)")
+    pg.click("[data-testid=tab-sheet]"); pg.click("[data-testid=sheet-picker]"); pg.click("[data-testid=sheet-E-101]"); pg.wait_for_timeout(1200)
+    reqs.clear()
+    pg.fill("[data-testid=demo-note]", "Panel LP-1 moved 5 ft east"); pg.click("[data-testid=demo-simulate]"); pg.wait_for_timeout(1200)
+    ok(pg.locator("svg.overlay g.mk").count() == 3, "demo simulated capture adds a local draft redline")
+    bad = [u for u in reqs if "/api/" in u or "supabase" in u or "ai-gateway" in u]
+    ok(not bad, f"simulated capture made no API/DB/AI requests ({len(reqs)} requests, none to /api, Supabase or AI Gateway)")
+    pg.screenshot(path=os.path.join(SHOTS, "23-demo-simulated-capture.png"))
+    demo_reqs_api = [u for u in reqs if "/api/" in u]
+
+    # ---- 1. not public: app + data
+    resp = pg.goto(BASE + "/app"); pg.wait_for_selector("[data-testid=login-form]")
+    ok(pg.locator("meta[name=robots]").get_attribute("content").startswith("noindex"), "/app has <meta name=robots noindex>")
+    ok("noindex" in (resp.headers.get("x-robots-tag") or ""), f"/app X-Robots-Tag header: {resp.headers.get('x-robots-tag')}")
     shot(pg, "10-login.png")
     codes = [pg.request.get(f"{BASE}{u}").status for u in ["/api/me", "/api/config", "/api/sample/photo", "/api/projects/00000000-0000-0000-0000-000000000000/state"]]
     ok(all(c == 401 for c in codes), f"API without a session -> {codes} (all 401)")
     ok(pg.request.get(f"{BASE}/api/me", headers={"Authorization": "Bearer not-a-real-token"}).status == 401, "forged bearer token rejected")
-    pub = pg.request.get(f"{BASE}/api/public-config").json()
-    su = pg.request.post(f"{pub['supabaseUrl']}/auth/v1/signup", headers={"apikey": pub["supabaseKey"], "Content-Type": "application/json"}, data=json.dumps({"email": "stranger-e2e@example.com", "password": "Very-long-Passw0rd-xyz"}))
+    Z = "00000000-0000-0000-0000-000000000000"
+    w = [pg.request.post(f"{BASE}/api/captures", multipart={"note": "x", "sheetId": Z, "photo": {"name": "p.jpg", "mimeType": "image/jpeg", "buffer": open(PHOTO, "rb").read()}}).status,
+         pg.request.post(f"{BASE}/api/projects", data={"name": "x"}).status, pg.request.patch(f"{BASE}/api/markups/{Z}", data={"status": "confirmed"}).status,
+         pg.request.post(f"{BASE}/api/projects/{Z}/sample").status, pg.request.post(f"{BASE}/api/projects/{Z}/reset").status, pg.request.get(f"{BASE}/api/projects/{Z}/export.pdf").status,
+         pg.request.get(f"{BASE}/api/projects/{Z}/markups.csv").status, pg.request.get(f"{BASE}/api/drawings/{Z}/file").status]
+    ok(all(c == 401 for c in w), f"anonymous write/AI/export/file endpoints -> {w} (all 401)")
+    su = pg.request.post(f"{SB}/auth/v1/signup", headers={"apikey": KEY, "Content-Type": "application/json"}, data=json.dumps({"email": "stranger-e2e@example.com", "password": "Very-long-Passw0rd-xyz"}))
     ok(su.status >= 400, f"public signup refused (HTTP {su.status}: {su.text()[:80]})")
     pg.fill("[data-testid=login-email]", PE); pg.fill("[data-testid=login-password]", "wrong-password-123"); pg.click("[data-testid=login-submit]")
     pg.wait_for_selector("[data-testid=login-error]"); ok(True, "wrong password shows an error")
@@ -72,7 +120,11 @@ with sync_playwright() as p:
     fm.set_input_files("[data-testid=photo-input]", PHOTO)
     fm.fill("[data-testid=note]", "Panel LP-1 relocated 3 ft north to clear duct, conduits re-stubbed above")
     fm.click("[data-testid=suggest]")
-    fm.wait_for_function("document.querySelectorAll('[data-testid^=queue-]').length >= 1", timeout=90000)
+    try: fm.wait_for_function("document.querySelectorAll('[data-testid^=queue-]').length >= 1", timeout=90000)
+    except Exception:
+        for t in ["err", "msg", "outbox"]:
+            l = fm.locator(f"[data-testid={t}]"); print("DEBUG", t, l.inner_text() if l.count() else None)
+        shot(fm, "debug-capture.png"); raise
     st = fm.request.get(f"{BASE}/api/projects/{pid}/state", headers=H(fm)).json(); m1 = st["markups"][0]
     ok(m1["status"] == "draft", f"capture 1 -> draft via {m1['method']} (conf {m1['confidence']}, anchor '{m1.get('anchorText')}')")
     shot(fm, "12-phone-captured.png")
@@ -93,6 +145,14 @@ with sync_playwright() as p:
     cap2 = next(c for c in st["captures"] if c["id"] == m2["captureId"])
     dup = fm.request.post(f"{BASE}/api/captures", headers=H(fm), multipart={"photo": {"name": "p.jpg", "mimeType": "image/jpeg", "buffer": open(PHOTO, "rb").read()}, "note": "dup", "sheetId": m2["sheetId"], "clientId": cap2["clientId"], "mode": "stub"}).json()
     ok(dup.get("duplicate") and dup["markup"]["id"] == m2["id"], "re-sending the same offline capture is idempotent (no duplicate)")
+    # anonymous cannot fetch the real photo / drawing objects from Storage (private buckets)
+    org = fm.request.get(f"{BASE}/api/me", headers=H(fm)).json()["memberships"][0]["orgId"]
+    paths = [f"photos/{org}/{pid}/photos/{m2['captureId']}.jpg", f"drawings/{org}/{pid}/drawings/{st['drawings'][0]['id']}.pdf"]
+    sc = [fm.request.get(f"{SB}/storage/v1/object/{pp}", headers={"apikey": KEY}).status for pp in paths] + [fm.request.get(f"{SB}/storage/v1/object/public/{pp}").status for pp in paths]
+    auth_ok = fm.request.get(f"{SB}/storage/v1/object/{paths[0]}", headers={"apikey": KEY, "Authorization": f"Bearer {token(fm)}"}).status
+    ok(all(c >= 400 for c in sc) and auth_ok == 200, f"real photo/drawing objects: anonymous -> {sc}, signed-in member -> {auth_ok}")
+    fl = fm.request.get(f"{SB}/rest/v1/leads?select=*", headers={"apikey": KEY, "Authorization": f"Bearer {token(fm)}"})
+    ok(fl.status in (401, 403) or fl.json() == [], f"signed-in users cannot read leads either (HTTP {fl.status})")
     # role enforcement
     c1 = fm.request.patch(f"{BASE}/api/markups/{m1['id']}", headers=H(fm), data={"status": "confirmed"}).status
     c2 = fm.request.post(f"{BASE}/api/projects", headers=H(fm), data={"name": "nope"}).status
