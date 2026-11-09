@@ -1,6 +1,6 @@
 # Field As-Built — provisioned infra
 
-_Last updated 9 Nov 2026, 9:25 AM EST. Everything is $0/mo. Secrets are not in this file or the repo; they're in Vercel (sensitive env vars) and in `/workspace/field-as-built/.env.local` on the box (gitignored)._
+_Last updated 9 Nov 2026, 9:16 AM EST. Everything is $0/mo. Secrets are not in this file or the repo; they're in Vercel (sensitive env vars) and in `/workspace/field-as-built/.env.local` on the box (gitignored)._
 
 | Resource | ID / location | Notes |
 |---|---|---|
