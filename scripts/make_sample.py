@@ -101,7 +101,7 @@ def lighting(c):
     c.setFont("Helvetica", 8); c.drawString(80, 150, "LIGHTING CONTROL: OCC SENSOR IN EACH ROOM. EMERGENCY FIXTURES ON CKT LP-1/20.")
 
 pdf = canvas.Canvas(os.path.join(OUT, "sample-electrical-plan-E101-E201.pdf"), pagesize=(W, H))
-pdf.setTitle("SAMPLE electrical plans (fake) - Field As-Built demo"); pdf.setAuthor("Field As-Built demo generator")
+pdf.setTitle("SAMPLE electrical plans (fake) - Field Redline demo"); pdf.setAuthor("Field Redline demo generator")
 power(pdf); pdf.showPage(); lighting(pdf); pdf.showPage(); pdf.save()
 
 # Fake "field photo": stylized electrical room wall with a panel, labeled SAMPLE
@@ -127,6 +127,6 @@ d.rectangle([60, 300, 330, 360], fill=(255, 255, 255)); d.text((72, 312), "ELEC 
 d.line([(380, 760), (380, 700)], fill=(255, 140, 0), width=4); d.text((150, 790), "~3'-0\" from orig. location", fill=(255, 255, 255), font=fs)
 img = img.filter(ImageFilter.GaussianBlur(0.8))
 d = ImageDraw.Draw(img)
-d.rectangle([0, 0, 1200, 44], fill=(200, 0, 0)); d.text((14, 6), "SAMPLE FIELD PHOTO (synthetic) - Field As-Built demo", fill=(255, 255, 255), font=fs)
+d.rectangle([0, 0, 1200, 44], fill=(200, 0, 0)); d.text((14, 6), "SAMPLE FIELD PHOTO (synthetic) - Field Redline demo", fill=(255, 255, 255), font=fs)
 img.save(os.path.join(OUT, "sample-field-photo-LP1.jpg"), quality=85)
 print("ok")

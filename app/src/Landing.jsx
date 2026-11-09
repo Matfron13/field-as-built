@@ -35,14 +35,14 @@ export default function Landing() {
   return (
     <div className="lp">
       <nav className="lp-nav">
-        <div className="brand">Field As-Built</div>
+        <div className="brand">Field Redline</div>
         <a href="/demo" className="lp-link">Demo</a>
         <a href="#pilot" className="lp-link">Request a pilot</a>
         <a href="/app" className="lp-link signin" data-testid="sign-in-link">Sign in</a>
       </nav>
       <header className="lp-hero">
         <h1>Snap a photo in the field.<br />Get the redline on the drawing.</h1>
-        <p>Field As-Built turns a foreman's photo and a one-line note into a clouded redline, placed on the right sheet and ready for the PE to confirm. Your as-builts stay current all job long, instead of being rebuilt from memory at closeout.</p>
+        <p>Field Redline turns a foreman's photo and a one-line note into a clouded redline, placed on the right sheet and ready for the PE to confirm. Your as-builts stay current all job long, instead of being rebuilt from memory at closeout.</p>
         <div className="lp-cta">
           <a className="btn primary big" href="/demo" data-testid="try-demo">Try the demo</a>
           <a className="btn big" href="#pilot">Request a pilot</a>
@@ -52,7 +52,7 @@ export default function Landing() {
 
       <section className="lp-steps">
         <div><b>1 · Photo + note</b><p>The foreman picks the sheet on their phone, takes a photo, and says or types what changed: "LP-1 moved 3 ft north to clear duct." It works with no signal and syncs later.</p></div>
-        <div><b>2 · Redline drafted on the drawing</b><p>Field As-Built finds the spot on the sheet and drafts a cloud and callout. Nothing hits the record set until a PE drags it into place and confirms.</p></div>
+        <div><b>2 · Redline drafted on the drawing</b><p>Field Redline finds the spot on the sheet and drafts a cloud and callout. Nothing hits the record set until a PE drags it into place and confirms.</p></div>
         <div><b>3 · Continuous as-builts</b><p>Export the full set or a single sheet as a PDF with real annotations, plus a markup log grouped by capture date and a CSV. Closeout is a download, not a scramble.</p></div>
       </section>
 
@@ -76,7 +76,7 @@ export default function Landing() {
         <p className="muted">Pilots run on one active project. We load your current drawing set and your field team starts capturing the same week.</p>
         <PilotForm />
       </section>
-      <footer className="lp-foot muted small">© 2026 Field As-Built · <a href="/demo">Demo</a> · <a href="/app">Sign in</a></footer>
+      <footer className="lp-foot muted small">© 2026 Field Redline · <a href="/demo">Demo</a> · <a href="/app">Sign in</a></footer>
     </div>
   );
 }

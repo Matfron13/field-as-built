@@ -88,7 +88,7 @@ export async function exportMarkupsPdf(pdfBytes, markups, opts = {}) {
     if (opts.pages && !opts.pages.includes(m.page)) continue;
     const c = m.cloud, co = m.callout; const bump = Math.max(5, Math.min(12, Math.min(c.w, c.h) / 6));
     const now = pdfDate(new Date(m.confirmedAt || m.createdAt || Date.now()));
-    const author = m.author || (who(opts.people, m.capturedBy) ? `${who(opts.people, m.capturedBy)} (Field As-Built)` : 'Field As-Built');
+    const author = m.author || (who(opts.people, m.capturedBy) ? `${who(opts.people, m.capturedBy)} (Field Redline)` : 'Field Redline');
     const capDay = dayKey(m.capturedAt || m.createdAt, opts.tz || 'America/New_York');
     const status = m.status === 'confirmed' ? 'Confirmed' : m.status === 'rejected' ? 'Rejected' : 'Draft';
     // --- Cloud polygon
@@ -159,6 +159,6 @@ export async function exportMarkupsPdf(pdfBytes, markups, opts = {}) {
   if (opts.log) await addLogPages(doc, markups, { tz: opts.tz || 'America/New_York', people: opts.people, title: opts.title || 'As-built record set', scopeLabel: opts.scopeLabel || 'Full set' });
   if (opts.title) doc.setSubject(opts.title);
   doc.setModificationDate(new Date());
-  doc.setProducer('Field As-Built prototype (pdf-lib)');
+  doc.setProducer('Field Redline prototype (pdf-lib)');
   return { bytes: await doc.save(), count };
 }

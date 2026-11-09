@@ -157,7 +157,7 @@ export function createApp() {
       if (mtd == null) { mode = 'stub'; stubReason = 'spend-check-failed'; stubNote = 'Could not read AI spend, so AI is paused for safety;'; }
       else if (mtd >= SPEND_CAP_USD) { mode = 'stub'; stubReason = 'monthly-cap'; stubNote = `AI paused: month-to-date AI spend $${mtd.toFixed(2)} reached the $${SPEND_CAP_USD.toFixed(2)} cap;`; }
     }
-    const t0 = Date.now(); const initials = (q.user.user_metadata?.initials || 'FAB').slice(0, 4);
+    const t0 = Date.now(); const initials = (q.user.user_metadata?.initials || 'FR').slice(0, 4);
     const s = await suggest({ sheet, note, photoBytes: q.file.buffer, photoMime: q.file.mimetype, initials, mode, provider, stubReason, stubNote });
     if (mode === 'llm') {
       const u = s.usage;

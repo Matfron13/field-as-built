@@ -1,4 +1,4 @@
-# Field As-Built — MVP spec
+# Field Redline — MVP spec
 
 _Status: approved to build (Matthew, 9 Nov 2026). Local prototype only; **no cloud infra created yet** (see §8, needs Civil SaaS Manager sign-off, and Matthew's for anything that costs money)._
 Validation report: https://cursor.com/canvas/store-6658e47e-5890-4ddf-9b2c-759069c15ecb/37684d8b-dbd2-40b9-a686-7d636755c450
@@ -113,7 +113,7 @@ All named `field-as-built`. Separate from other bots' projects so data, keys, an
 | 4 | Vercel project | `field-as-built`, Next.js, linked to the repo; preview deploys on PRs; default URL `field-as-built.vercel.app` | $0 incremental on an existing Pro team (Pro is $20/user/mo if a team is needed; Hobby is non-commercial only) |
 | 5 | Vercel env vars | `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`, `SUPABASE_SERVICE_ROLE_KEY`, `AI_GATEWAY_API_KEY` (or OIDC), `STRIPE_SECRET_KEY`, `STRIPE_WEBHOOK_SECRET`, `FAB_VISION_MODEL` | $0 |
 | 6 | Vercel AI Gateway | Used from the `field-as-built` project; budget alert at $25/mo | Pass-through model pricing. grok-4.20: $1.25/M input, $2.50/M output → ≈ $0.004/capture on the sample sheet, ≈ $0.02–0.05 on dense real sheets (10–30k text tokens). 1,000 captures/mo ≈ $5–50. |
-| 7 | Stripe products (test mode first) | `Field As-Built – Project (monthly)` (hypothesis $300–600/active project/mo) and `Field As-Built – Pilot (one-time)` (optional); prices in USD; metadata `app=field-as-built` | $0 fixed; 2.9% + 30¢ per card charge, plus Stripe Billing 0.7% of recurring volume |
+| 7 | Stripe products (test mode first) | `Field Redline – Project (monthly)` (hypothesis $300–600/active project/mo) and `Field Redline – Pilot (one-time)` (optional); prices in USD; metadata `app=field-as-built` | $0 fixed; 2.9% + 30¢ per card charge, plus Stripe Billing 0.7% of recurring volume |
 | 8 | Stripe webhook endpoint (own) | `https://field-as-built.vercel.app/api/stripe/webhook`, events `checkout.session.completed`, `customer.subscription.created/updated/deleted`, `invoice.paid`, `invoice.payment_failed`; own signing secret | $0 |
 | 9 | Domain (optional, later) | e.g. `fieldasbuilt.com` / `.app`, only at public launch | ~$15–25/yr |
 

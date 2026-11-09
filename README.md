@@ -1,4 +1,4 @@
-# Field As-Built — local prototype
+# Field Redline — local prototype
 
 Auto-redline as-builts from field photos. AI drafts the cloud + note; a foreman or PE confirms; export a PDF with real Bluebeam-compatible annotations.
 Live: https://field-as-built.vercel.app (stub placement, sample data). Infra and IDs: `docs/INFRA.md`. Spec: `docs/MVP_SPEC.md`.

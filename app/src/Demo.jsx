@@ -40,7 +40,7 @@ export default function Demo() {
   return (
     <div className="app demo">
       <header>
-        <a className="brand" href="/">Field As-Built</a>
+        <a className="brand" href="/">Field Redline</a>
         <span className="rolechip">LIVE DEMO · sample data</span>
         <span className="small">{d.project.name}</span>
         <a className="hdrbtn right btn" href="/#pilot" data-testid="demo-pilot">Request a pilot</a>

@@ -40,7 +40,7 @@ function Login() {
   return (
     <div className="login">
       <form onSubmit={go} data-testid="login-form">
-        <div className="brand big">Field As-Built</div>
+        <div className="brand big">Field Redline</div>
         <div className="muted small">Sign in. Accounts are invite-only; ask your admin for access.</div>
         <input type="email" autoComplete="username" placeholder="Email" value={email} onChange={(e) => setEmail(e.target.value)} data-testid="login-email" required />
         <input type="password" autoComplete="current-password" placeholder="Password" value={pw} onChange={(e) => setPw(e.target.value)} data-testid="login-password" required />
@@ -200,7 +200,7 @@ function Workspace({ user }) {
   return (
     <div className="app">
       <header>
-        <div className="brand">Field As-Built</div>
+        <div className="brand">Field Redline</div>
         <select className="projsel" value={pid || ''} onChange={(e) => setPid(e.target.value)} data-testid="project-select">
           {!me?.projects?.length && <option value="">No projects</option>}
           {me?.projects?.map((p) => <option key={p.id} value={p.id}>{p.name}</option>)}

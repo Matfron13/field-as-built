@@ -10,4 +10,4 @@ const PORT = +process.env.PORT || 4317;
 const app = createApp();
 const dist = path.join(ROOT, 'dist');
 if (fs.existsSync(dist)) { app.use(express.static(dist)); app.get(/^\/(?!api).*/, (_q, r) => r.sendFile(path.join(dist, 'index.html'))); }
-app.listen(PORT, '0.0.0.0', () => console.log(`Field As-Built prototype on http://localhost:${PORT} (placement: ${placementMode()}, store: ${process.env.SUPABASE_URL ? 'supabase' : 'json'})`));
+app.listen(PORT, '0.0.0.0', () => console.log(`Field Redline prototype on http://localhost:${PORT} (placement: ${placementMode()}, store: ${process.env.SUPABASE_URL ? 'supabase' : 'json'})`));

@@ -1,4 +1,4 @@
-"""End-to-end check of Field As-Built through the real UI (headless Chrome), as real signed-in users.
+"""End-to-end check of Field Redline through the real UI (headless Chrome), as real signed-in users.
  auth gate + noindex + invite-only signup -> PE: project + sample set -> Foreman (phone viewport): sheet picker,
  capture (AI or stub per server config), offline capture queued in IndexedDB then synced -> role checks ->
  PE: drag + confirm / reject -> export full-set PDF, per-sheet PDF, markup CSV -> verify annotations + log page.
