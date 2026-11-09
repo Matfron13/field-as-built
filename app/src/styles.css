@@ -1,0 +1,38 @@
+* { box-sizing: border-box; }
+body { margin: 0; font: 14px/1.35 system-ui, -apple-system, Segoe UI, Roboto, sans-serif; color: #1d232a; background: #eef1f4; }
+header { display: flex; align-items: center; gap: 16px; padding: 10px 16px; background: #13202e; color: #fff; flex-wrap: wrap; }
+.brand { font-weight: 700; font-size: 17px; } .proto { font-size: 11px; background: #e5484d; padding: 2px 6px; border-radius: 4px; margin-left: 6px; vertical-align: middle; }
+.proj { opacity: .8; } .roles { display: flex; gap: 4px; margin-left: auto; }
+.roles button { background: #24364a; color: #cfe; border: 0; } .roles button.on { background: #f5a524; color: #111; }
+.mode { font-size: 12px; padding: 4px 8px; border-radius: 4px; background: #7a4b00; } .mode.llm { background: #1f6f43; }
+.body { display: flex; height: calc(100vh - 52px); }
+aside { width: 380px; min-width: 380px; overflow-y: auto; padding: 10px 12px; background: #fff; border-right: 1px solid #d5dbe1; }
+main { flex: 1; overflow: auto; padding: 12px; }
+section { margin-bottom: 14px; padding-bottom: 12px; border-bottom: 1px solid #eee; }
+h3 { margin: 0 0 6px; font-size: 14px; }
+.row { display: flex; gap: 6px; margin-top: 6px; flex-wrap: wrap; } .row textarea { flex: 1; }
+textarea { width: 100%; font: inherit; padding: 6px; border: 1px solid #c8d0d8; border-radius: 6px; }
+button, .btn { font: inherit; font-size: 13px; padding: 6px 10px; border: 1px solid #c8d0d8; border-radius: 6px; background: #f7f9fb; cursor: pointer; display: inline-block; }
+button:disabled { opacity: .45; cursor: default; } .primary { background: #d62f2f; border-color: #b52222; color: #fff; } .ghost { background: none; }
+button.rec { background: #ffd9d9; }
+.sheets { display: flex; flex-direction: column; gap: 4px; margin-top: 8px; } .sheets button { text-align: left; } .sheets button.on { background: #fff3db; border-color: #f5a524; }
+.muted { color: #66717d; } .small { font-size: 12px; } .tiny { font-size: 11px; margin-top: 4px; }
+.thumb { max-width: 100%; max-height: 140px; margin-top: 6px; border-radius: 6px; }
+.qi { display: flex; gap: 8px; padding: 6px; border: 1px solid #e3e7eb; border-radius: 6px; margin-bottom: 6px; cursor: pointer; }
+.qi.sel { border-color: #d62f2f; box-shadow: 0 0 0 2px #fcd; } .qi img { width: 56px; height: 42px; object-fit: cover; border-radius: 4px; }
+.qi.rejected { opacity: .55; } .qt { flex: 1; min-width: 0; }
+.st { font-weight: 600; } .st.draft { color: #b26b00; } .st.confirmed { color: #1f7a45; } .st.rejected { color: #888; }
+.low { background: #ffe1e1; color: #b00; font-size: 10px; padding: 0 4px; border-radius: 3px; }
+.busy { background: #fff7e0; padding: 6px; border-radius: 6px; } .err { background: #ffe5e5; color: #a00; padding: 6px; border-radius: 6px; margin-top: 6px; }
+.viewer { width: 100%; } .empty { padding: 40px; color: #66717d; }
+.sheet { position: relative; background: #fff; box-shadow: 0 1px 6px rgba(0,0,0,.15); }
+.sheet canvas { position: absolute; left: 0; top: 0; } .overlay { position: absolute; left: 0; top: 0; }
+.mk .cloud { fill: none; stroke: #e01b1b; stroke-width: 2; cursor: move; } .mk.draft .cloud { stroke-dasharray: 5 3; stroke: #e07b00; }
+.mk.rejected .cloud { stroke: #999; } .mk.sel .cloud { stroke-width: 3; }
+.mk .hit { fill: rgba(224, 27, 27, .04); cursor: move; } .mk.draft .hit { fill: rgba(224, 123, 0, .06); }
+.mk .leader { stroke: #e01b1b; stroke-width: 1.2; } .mk.draft .leader { stroke: #e07b00; } .mk.rejected .leader { stroke: #999; }
+.callout { background: #fff; border: 1.5px solid #e01b1b; color: #c00; padding: 2px 4px; font-family: Helvetica, Arial, sans-serif; cursor: move; line-height: 1.2; }
+.mk.draft .callout { border-color: #e07b00; border-style: dashed; color: #a35600; } .mk.rejected .callout { border-color: #999; color: #888; }
+.handle { fill: #fff; stroke: #e01b1b; cursor: nwse-resize; }
+.badge { font-size: 10px; fill: #a35600; font-weight: 600; } .mk.confirmed .badge { fill: #1f7a45; } .mk.rejected .badge { fill: #888; }
+@media (max-width: 800px) { .body { flex-direction: column; height: auto; } aside { width: 100%; min-width: 0; } }
