@@ -39,6 +39,42 @@ function wrap(font, text, size, maxW) {
 }
 const esc = (s) => s.replace(/[^\x20-\x7e]/g, '?').replace(/([\\()])/g, '\\$1');
 
+export const dayKey = (iso, tz) => new Intl.DateTimeFormat('en-CA', { timeZone: tz, year: 'numeric', month: '2-digit', day: '2-digit' }).format(new Date(iso));
+const timeOf = (iso, tz) => new Intl.DateTimeFormat('en-US', { timeZone: tz, hour: 'numeric', minute: '2-digit' }).format(new Date(iso));
+export function groupByCaptureDate(markups, tz) {
+  const g = new Map();
+  for (const m of markups) { const k = dayKey(m.capturedAt || m.createdAt, tz); if (!g.has(k)) g.set(k, []); g.get(k).push(m); }
+  return [...g.entries()].sort((a, b) => (a[0] < b[0] ? -1 : 1));
+}
+const who = (people, id) => (id && people?.[id] ? (people[id].initials || people[id].name || people[id].email) : '');
+
+// Appended "Markup log" page(s): every exported markup, grouped by capture date.
+async function addLogPages(doc, markups, { tz, people, title, scopeLabel }) {
+  const font = await doc.embedFont(StandardFonts.Helvetica), bold = await doc.embedFont(StandardFonts.HelveticaBold);
+  const W = 792, H = 612, M = 40; let page = doc.addPage([W, H]); let y = H - M;
+  const line = (txt, { size = 9, f = font, x = M, color } = {}) => { page.drawText(esc(txt).replace(/\\([\\()])/g, '$1'), { x, y, size, font: f, ...(color ? { color } : {}) }); };
+  const need = (h) => { if (y - h < M) { page = doc.addPage([W, H]); y = H - M; } };
+  line(`Markup log: ${title}`, { size: 14, f: bold }); y -= 16;
+  line(`${scopeLabel} - ${markups.length} markup(s), grouped by capture date (${tz}). Generated ${new Date().toISOString().slice(0, 16).replace('T', ' ')} UTC.`, { size: 9 }); y -= 18;
+  const cols = [[M, 'Time'], [M + 50, 'Sheet'], [M + 105, 'Status'], [M + 170, 'By / Confirmed'], [M + 270, 'Markup text']];
+  for (const [day, ms] of groupByCaptureDate(markups, tz)) {
+    need(40); line(`${day}  (${ms.length})`, { size: 11, f: bold }); y -= 14;
+    cols.forEach(([x, t]) => line(t, { size: 8, f: bold, x })); y -= 11;
+    for (const m of ms) {
+      const lines = wrap(font, esc(m.text).replace(/\\([\\()])/g, '$1'), 8.5, W - M - (M + 270));
+      need(lines.length * 10.5 + 4);
+      line(timeOf(m.capturedAt || m.createdAt, tz), { size: 8.5 });
+      line(m.sheetNumber || `p${m.page}`, { size: 8.5, x: M + 50 });
+      line(m.status.toUpperCase(), { size: 8.5, x: M + 105, f: bold });
+      line(`${who(people, m.capturedBy)}${m.confirmedBy ? ' / ' + who(people, m.confirmedBy) : ''}`, { size: 8.5, x: M + 170 });
+      lines.forEach((ln, i) => { page.drawText(ln, { x: M + 270, y: y - i * 10.5, size: 8.5, font }); });
+      y -= lines.length * 10.5 + 4;
+    }
+    y -= 8;
+  }
+}
+
+// opts.pages: 1-based page numbers to keep (null = full set). opts.log: append markup log pages.
 export async function exportMarkupsPdf(pdfBytes, markups, opts = {}) {
   const doc = await PDFDocument.load(pdfBytes);
   const ctx = doc.context;
@@ -49,9 +85,11 @@ export async function exportMarkupsPdf(pdfBytes, markups, opts = {}) {
   let count = 0;
   for (const m of markups) {
     const page = pages[m.page - 1]; if (!page) continue;
+    if (opts.pages && !opts.pages.includes(m.page)) continue;
     const c = m.cloud, co = m.callout; const bump = Math.max(5, Math.min(12, Math.min(c.w, c.h) / 6));
     const now = pdfDate(new Date(m.confirmedAt || m.createdAt || Date.now()));
-    const author = m.author || 'Field As-Built';
+    const author = m.author || (who(opts.people, m.capturedBy) ? `${who(opts.people, m.capturedBy)} (Field As-Built)` : 'Field As-Built');
+    const capDay = dayKey(m.capturedAt || m.createdAt, opts.tz || 'America/New_York');
     const status = m.status === 'confirmed' ? 'Confirmed' : m.status === 'rejected' ? 'Rejected' : 'Draft';
     // --- Cloud polygon
     const pad = bump * 0.9 + 2;
@@ -63,7 +101,7 @@ export async function exportMarkupsPdf(pdfBytes, markups, opts = {}) {
       Type: 'Annot', Subtype: 'Polygon', Rect: cRect, F: 4,
       Vertices: [c.x, c.y, c.x, c.y + c.h, c.x + c.w, c.y + c.h, c.x + c.w, c.y],
       C: red, CA: 1, BS: { Type: 'Border', W: 1.5, S: 'S' }, BE: { S: 'C', I: 1 },
-      IT: 'PolygonCloud', Subj: PDFString.of('Cloud'), T: PDFHexString.fromText(author),
+      IT: 'PolygonCloud', Subj: PDFString.of(`Cloud - captured ${capDay}`), T: PDFHexString.fromText(author),
       Contents: PDFHexString.fromText(m.text), NM: PDFString.of(`fab-cloud-${m.id}`),
       M: PDFString.of(now), CreationDate: PDFString.of(now),
       AP: { N: ctx.register(cAp) },
@@ -106,7 +144,7 @@ export async function exportMarkupsPdf(pdfBytes, markups, opts = {}) {
       CL: [p1[0], p1[1], p2[0], p2[1], p3[0], p3[1]], LE: 'OpenArrow',
       DA: PDFString.of(`/Helv ${size} Tf 1 0 0 rg`), DS: PDFString.of(`font: Helvetica ${size}pt; text-align:left; color:#FF0000`),
       C: red, BS: { Type: 'Border', W: 1, S: 'S' },
-      Subj: PDFString.of('Callout'), T: PDFHexString.fromText(author), Contents: PDFHexString.fromText(m.text),
+      Subj: PDFString.of(`Callout - captured ${capDay}`), T: PDFHexString.fromText(author), Contents: PDFHexString.fromText(m.text),
       NM: PDFString.of(`fab-callout-${m.id}`), M: PDFString.of(now), CreationDate: PDFString.of(now),
       IRT: cloudRef, RT: 'Group',
       AP: { N: ctx.register(tAp) },
@@ -114,6 +152,11 @@ export async function exportMarkupsPdf(pdfBytes, markups, opts = {}) {
     page.node.addAnnot(ctx.register(textDict));
     count++;
   }
+  if (opts.pages) {
+    const keep = new Set(opts.pages);
+    for (let i = pages.length; i >= 1; i--) if (!keep.has(i)) doc.removePage(i - 1);
+  }
+  if (opts.log) await addLogPages(doc, markups, { tz: opts.tz || 'America/New_York', people: opts.people, title: opts.title || 'As-built record set', scopeLabel: opts.scopeLabel || 'Full set' });
   if (opts.title) doc.setSubject(opts.title);
   doc.setModificationDate(new Date());
   doc.setProducer('Field As-Built prototype (pdf-lib)');

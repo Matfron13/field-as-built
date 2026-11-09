@@ -18,7 +18,7 @@ function cloudD(x, y, w, h, b) {
   return d;
 }
 
-export default function SheetViewer({ drawingUrl, sheet, markups, selectedId, onSelect, onChange }) {
+export default function SheetViewer({ drawingKey, loadDrawing, sheet, markups, selectedId, onSelect, onChange, canEdit = () => true }) {
   const canvasRef = useRef(null);
   const wrapRef = useRef(null);
   const [scale, setScale] = useState(1);
@@ -31,10 +31,10 @@ export default function SheetViewer({ drawingUrl, sheet, markups, selectedId, on
   useEffect(() => {
     let cancelled = false;
     (async () => {
-      if (!drawingUrl || !sheet) return;
+      if (!drawingKey || !sheet) return;
       try { taskRef.current?.cancel(); await taskRef.current?.promise; } catch { /* cancelled */ }
       if (cancelled) return;
-      if (docRef.current.url !== drawingUrl) docRef.current = { url: drawingUrl, doc: await pdfjs.getDocument(drawingUrl).promise };
+      if (docRef.current.url !== drawingKey) { const data = await loadDrawing(drawingKey); if (cancelled) return; docRef.current = { url: drawingKey, doc: await pdfjs.getDocument({ data: data.slice(0) }).promise }; }
       const page = await docRef.current.doc.getPage(sheet.page);
       const avail = (wrapRef.current?.clientWidth || 1000) - 4;
       const s = avail / sheet.width;
@@ -47,10 +47,10 @@ export default function SheetViewer({ drawingUrl, sheet, markups, selectedId, on
       if (!cancelled) setScale(s);
     })().catch((e) => { if (e?.name !== 'RenderingCancelledException') console.error(e); });
     return () => { cancelled = true; };
-  }, [drawingUrl, sheetKey]); // eslint-disable-line
+  }, [drawingKey, sheetKey]); // eslint-disable-line
 
   useEffect(() => { if (!drag) setLocal({}); }, [markups]); // eslint-disable-line
-  if (!sheet) return <div className="empty">Load a drawing set to start.</div>;
+  if (!sheet) return <div className="empty">Pick a project and a sheet to start.</div>;
   const H = sheet.height;
   // PDF box (origin bottom-left) -> screen rect
   const toScr = (b) => ({ x: b.x * scale, y: (H - b.y - b.h) * scale, w: b.w * scale, h: b.h * scale });
@@ -58,6 +58,7 @@ export default function SheetViewer({ drawingUrl, sheet, markups, selectedId, on
   const onDown = (e, m, part) => {
     e.stopPropagation(); e.preventDefault();
     onSelect(m.id);
+    if (!canEdit(m)) return;
     const cur = local[m.id] || { cloud: m.cloud, callout: m.callout };
     setDrag({ id: m.id, part, sx: e.clientX, sy: e.clientY, orig: cur });
     e.currentTarget.setPointerCapture?.(e.pointerId);
